@@ -124,26 +124,30 @@ class Zombie:
         else:
             return BehaviorTree.RUNNING
 
+    def run_away_to_boy(self, r=0.5):
+        self.state = 'Walk'
+        self.run_away_x = self.x * 2 - play_mode.boy.x
+        self.run_away_y = self.y * 2 - play_mode.boy.y
+        self.move_slightly_to(self.run_away_x, self.run_away_y)
+        if self.distance_less_than(play_mode.boy.x, play_mode.boy.y, self.x, self.y, r):
+            return BehaviorTree.SUCCESS
+        else:
+            return BehaviorTree.RUNNING
+
     def get_patrol_location(self):
         self.tx, self.ty = self.patrol_location[self.loc_no]
         self.loc_no = (self.loc_no+1) % len(self.patrol_location)
         return BehaviorTree.SUCCESS
 
     def build_behavior_tree(self):
-        a1 = Action('Set target location', self.set_target_location, 500, 50)
         a2 = Action('Move to', self.move_to)
-        SEQ_move_to_target_location = Sequence('Move to target location', a1, a2)
-
         a3 = Action('Set random location', self.set_random_location)
         root = SEQ_wander = Sequence('Wander', a3, a2)
 
         c1 = Condition('소년이 근처에 있는가?', self.is_boy_nearby, 7)
-        a4 = Action('소년한테 접근', self.move_to_boy)
+        a4 = Action('소년한테 접근', self.run_away_to_boy)
         root = SEQ_chase_boy = Sequence('소년을 추적', c1, a4)
 
         root = SEL_chase_or_flee = Selector('추적 또는 배회', SEQ_chase_boy, SEQ_wander)
-
-        a5 = Action('순찰 위치 가져오기', self.get_patrol_location)
-        root = SEQ_patrol = Sequence('순찰', a5, a2)
 
         self.bt = BehaviorTree(root)
